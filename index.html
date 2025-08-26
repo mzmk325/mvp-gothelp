@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>吃什么</title>
     <link rel="manifest" href="/manifest.webmanifest">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}</script>
@@ -44,8 +44,31 @@
         }
       }
     </script>
-    <style type="text/tailwindcss">
+    <script>
+      // 轻量阻止手势缩放（注意：会禁用双指缩放）
+      document.addEventListener('gesturestart', e => e.preventDefault());
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', e => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, false);
+    </script>
+    <style type="text/tailwindcss">   
       @layer utilities {
+        /* iOS 防止输入框聚焦触发缩放：表单基线 16px */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* 让页面更“原生”：防止双击放大、优化滚动 */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
         .content-auto { content-visibility:auto; }
         .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
         .scrollbar-hide::-webkit-scrollbar { display:none; }
@@ -53,6 +76,7 @@
         .touch-target{ min-height:44px; min-width:44px; }
         .calendar-day{ aspect-ratio:1/1; }
       }
+      
     </style>
   </head>
   <body class="font-sf-pro bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300">
@@ -260,7 +284,7 @@
       <button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-metric="carbs">碳水</button>
       <button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-metric="fat">脂肪</button>
     </div>
-    <div id="metrics-chart" class="h-64"></div>
+    <div id="metrics-chart" class="h-72"></div>
   </section>
 
   <!-- 记录率 + 达标率（演示静态） -->
@@ -1944,7 +1968,7 @@ const myChart = echarts.init(chartDom);
   // 月视图做“细竖线”效果：限制柱宽
   const option = {
     color: [barColor],
-    grid: { left: '3%', right: '4%', bottom: '3%', top: 20, containLabel: true },
+    grid: { left: '6%', right: '4%', bottom: '14%', top: 28, containLabel: true },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     xAxis: {
       type: 'category',
