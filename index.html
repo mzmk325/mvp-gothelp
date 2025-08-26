@@ -116,7 +116,8 @@ html, body {
     </header>
 
     <!-- 主体：三个分区（今天 / 历史 / 我的） -->
-    <main class="container mx-auto px-4 py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+    <main class="px-4 py-6">
+      <div id="page-wrap" class="mx-auto w-full max-w-[640px] pb-[calc(4rem+env(safe-area-inset-bottom))]">
       <!-- 今天 -->
       <section id="page-today" class="block">
         <!-- 今日标准卡 -->
@@ -355,7 +356,7 @@ html, body {
             </div>
           </section>
         </div>
-        <div class="pt-8 pb-12 text-center text-xs text-neutral-400">
+        <div class="pt-4 pb-2 text-center text-xs text-neutral-400">
           Cc designed
         </div>
       </section>
@@ -424,6 +425,7 @@ html, body {
     <p class="text-xs text-neutral-500 mt-3">提示：碳水会在首页按「热量 - 蛋白×4 - 脂肪×9」自动推算。</p>
   </section>
 </section>
+</div>
     </main>
 
     <!-- 底部导航栏 -->
@@ -1204,7 +1206,7 @@ function renderAiResult(json){
           <div class="flex items-center gap-2 mt-1">
             <button class="w-6 h-6 rounded bg-neutral-200 dark:bg-neutral-600 text-xs" 
                     onclick="adjustQuantity(${index}, 0.5)">-</button>
-            <span class="quantity-display text-sm font-medium" data-index="${index}">1.0倍</span>
+            <span class="quantity-display text-sm font-medium" data-index="${index}">1.0份</span>
             <button class="w-6 h-6 rounded bg-neutral-200 dark:bg-neutral-600 text-xs" 
                     onclick="adjustQuantity(${index}, 2)">+</button>
           </div>
