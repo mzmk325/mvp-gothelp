@@ -77,14 +77,21 @@ html, body {
         .scrollbar-hide::-webkit-scrollbar { display:none; }
         .transition-transform-shadow{ transition: transform .2s ease, box-shadow .2s ease; }
         .touch-target{ min-height:44px; min-width:44px; }
-        .calendar-day{ aspect-ratio:1/1; }
+        .calendar-day{ aspect-ratio:1/1; }  
+        /* —— iOS 顶部安全区（适配灵动岛/刘海）—— */
+.safe-top{
+  /* 老版 iOS */
+  padding-top: constant(safe-area-inset-top);
+  /* 新版 iOS / iPhone 15 Pro Max 等 */
+  padding-top: env(safe-area-inset-top);
+}
       }
       
     </style>
   </head>
   <body class="font-sf-pro bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300">
     <!-- 顶部导航（通用） -->
-    <header class="sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+    <header class="safe-top sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800"></header>
       <div class="container mx-auto px-4 py-3 flex justify-between items-center">
         <h1 id="app-title" class="text-xl font-semibold">吃什么</h1>
         <div class="flex items-center space-x-4">
