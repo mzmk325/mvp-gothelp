@@ -84,7 +84,7 @@ html, body {
   </head>
   <body class="font-sf-pro bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300">
     <!-- 顶部导航（通用） -->
-    <header class="sticky top-0 z-50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
+    <header class="sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
       <div class="container mx-auto px-4 py-3 flex justify-between items-center">
         <h1 id="app-title" class="text-xl font-semibold">吃什么</h1>
         <div class="flex items-center space-x-4">
@@ -339,6 +339,9 @@ html, body {
             </div>
           </section>
         </div>
+        <div class="pt-8 pb-12 text-center text-xs text-neutral-400">
+          Cc designed
+        </div>
       </section>
 <!-- 设置 · 个人资料（二级页面） -->
 <section id="page-settings-profile" class="hidden">
@@ -524,6 +527,18 @@ function calcTotals(items){
   }, {kcal:0,protein:0,carbs:0,fat:0});
   t.protein=+t.protein.toFixed(1); t.carbs=+t.carbs.toFixed(1); t.fat=+t.fat.toFixed(1);
   return t;
+}
+// === 生成保存用的简述文案：如 "牛肉面 x 1、香蕉 x 1" ===
+function formatMealText(items){
+  if (!Array.isArray(items) || items.length === 0) return '';
+  // 先把同名食物合并统计数量（目前默认每项 1 份）
+  const map = new Map();
+  for (const it of items) {
+    const name = String(it?.name || '食物').trim();
+    if (!name) continue;
+    map.set(name, (map.get(name) || 0) + 1);
+  }
+  return Array.from(map.entries()).map(([name, cnt]) => `${name} x ${cnt}`).join('、');
 }
 
 async function callAI({ text=null, image=null, mode='auto', prevJSON=null }){
@@ -1439,8 +1454,9 @@ document.getElementById('confirm-ai').onclick = () => {
   if (editingOldMealKey) {
     const idx = meals.findIndex(x => x.time === editingOldMealKey);
     if (idx > -1) {
-      meals[idx].items  = fin;
-      meals[idx].totals = totals;
+      meals[idx].items = fin;
+meals[idx].text = formatMealText(fin);   // 用 “食物 x 数量” 简述文案
+meals[idx].totals = totals;
       meals[idx].updatedAt = Date.now();
       store.set('meals', meals);
       loadGoalsForToday();
@@ -1450,8 +1466,14 @@ document.getElementById('confirm-ai').onclick = () => {
     editingOldMealKey = null;
     tempAiItemsForEdit = null;
   } else {
-    const text = (document.getElementById('meal-text').value || '').trim();
-    const entry = { time: Date.now(), mealType: currentMeal, text, items: fin, totals };
+    // 原来是从 textarea 取 text，这里改成使用 formatMealText 生成的简述
+const entry = {
+  time: Date.now(),
+  mealType: currentMeal,
+  text: formatMealText(fin),   // 关键：保存为 “牛肉面 x 1, 香蕉 x 1”
+  items: fin,
+  totals
+};
     meals.push(entry);
     document.getElementById('meal-text').value = '';
     store.set('meals', meals);
@@ -1820,7 +1842,7 @@ function renderCalendar(){
           data-pick="${key}">
     <div class="flex items-center gap-2">
       <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
-      ${isToday ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-700">今天</span>' : ''}
+      ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-success"></span>' : ''}
       ${mealsOfDate(date).length>0 ? '<span class="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success">打卡</span>' : ''}
       ${mealsOfDate(date).some(m=>m.backfill) ? '<span class="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">补录</span>' : ''}
     </div>
