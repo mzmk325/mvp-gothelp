@@ -97,10 +97,26 @@ html, body {
       }
       
     </style>
+    <style>
+      /* 底部贴合：延续导航背景到 iOS 安全区，但不增加导航实际高度 */
+      .app-tabbar { position: fixed; }
+      
+      @supports (padding: max(0px)) {
+        .app-tabbar::after{
+          content:"";
+          position:absolute;
+          left:0; right:0; bottom:0;
+          height: env(safe-area-inset-bottom); /* 补背景到 safe-area */
+          background: inherit;                 /* 延续 nav 背景色 */
+          border-top: inherit;                 /* 分割线延伸到最底 */
+          pointer-events:none;                 /* 不挡点击 */
+        }
+      }
+      </style>
   </head>
   <body class="font-sf-pro bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300">
     <!-- 顶部导航（通用） -->
-    <header class="safe-top sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+    <header class="sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
       <div class="container mx-auto px-4 py-3 flex justify-between items-center">
         <h1 id="app-title" class="text-xl font-semibold">吃什么</h1>
         <div class="flex items-center space-x-4">
@@ -429,7 +445,7 @@ html, body {
     </main>
 
     <!-- 底部导航栏 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40 safe-bottom">
+    <nav class="app-tabbar fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40"></nav>
       <!-- 注意：外层 nav 加了 safe-bottom，让背景铺满到 iOS 底部安全区 -->
       <div class="grid grid-cols-3 h-16">
         <button id="tab-today" class="flex flex-col items-center justify-center text-primary"><i class="fa-solid fa-utensils mb-1"></i><span class="text-xs">今天</span></button>
