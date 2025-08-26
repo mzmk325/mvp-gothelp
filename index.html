@@ -81,18 +81,11 @@ html, body {
         .touch-target{ min-height:44px; min-width:44px; }
         .calendar-day{ aspect-ratio:1/1; }  
         /* —— iOS 顶部安全区（适配灵动岛/刘海）—— */
-        .safe-top{
-        /* 老版 iOS */
-        padding-top: constant(safe-area-inset-top);
-        /* 新版 iOS / iPhone 15 Pro Max 等 */
-       padding-top: env(safe-area-inset-top);
-      }
-      /* —— iOS 底部安全区（适配 Home 指示条）—— */
-.safe-bottom{
+.safe-top{
   /* 老版 iOS */
-  padding-bottom: constant(safe-area-inset-bottom);
-  /* 新版 iOS */
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: constant(safe-area-inset-top);
+  /* 新版 iOS / iPhone 15 Pro Max 等 */
+  padding-top: env(safe-area-inset-top);
 }
       }
       
@@ -116,7 +109,7 @@ html, body {
     </header>
 
     <!-- 主体：三个分区（今天 / 历史 / 我的） -->
-    <main class="container mx-auto px-4 py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+    <main class="container mx-auto px-4 py-6 pb-24">
       <!-- 今天 -->
       <section id="page-today" class="block">
         <!-- 今日标准卡 -->
@@ -342,8 +335,8 @@ html, body {
               <button id="open-vip" class="px-4 py-2 bg-primary text-white rounded-xl text-sm">去开通</button>
             </div>
             <div class="text-neutral-700 dark:text-neutral-300 font-medium mb-1">试用中</div>
-            <div class="text-neutral-500 dark:text-neutral-400 text-sm">到期日期：2025-12-31</div>
-            <div class="mt-4 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700 text-sm text-neutral-600 dark:text-neutral-300"><i class="fa-solid fa-info-circle mr-2 text-primary"></i>高级会员解锁个性化目标设置，餐饮记录修改，AI分析等高级功能</div>
+            <div class="text-neutral-500 dark:text-neutral-400 text-sm">到期日期：2023-12-31</div>
+            <div class="mt-4 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700 text-sm text-neutral-600 dark:text-neutral-300"><i class="fa-solid fa-info-circle mr-2 text-primary"></i>高级会员可享受专业饮食分析、个性化推荐和专属营养师指导等特权</div>
           </section>
           <section class="bg-white dark:bg-neutral-800 rounded-xl shadow-light p-6 border border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center justify-between mb-3">
@@ -427,8 +420,7 @@ html, body {
     </main>
 
     <!-- 底部导航栏 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40 safe-bottom">
-      <!-- 注意：外层 nav 加了 safe-bottom，让背景铺满到 iOS 底部安全区 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40">
       <div class="grid grid-cols-3 h-16">
         <button id="tab-today" class="flex flex-col items-center justify-center text-primary"><i class="fa-solid fa-utensils mb-1"></i><span class="text-xs">今天</span></button>
         <button id="tab-history" class="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400"><i class="fa-solid fa-history mb-1"></i><span class="text-xs">历史</span></button>
@@ -1857,20 +1849,12 @@ function renderCalendar(){
     return `
   <button class="text-left p-3 rounded-xl border ${isSel ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-700/40'} transition-colors"
           data-pick="${key}">
-    <div class="flex items-start gap-2">
-  <!-- 日期 + 绿点（竖排） -->
-  <div class="flex flex-col items-center leading-none">
-    <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
-    <!-- 今天的小绿点放在日期下方；不是今天时用 invisible 占位，避免跳动 -->
-    <span class="mt-1 inline-block w-1.5 h-1.5 rounded-full ${isToday ? 'bg-success' : 'invisible'}"></span>
-  </div>
-
-  <!-- 右侧保留徽标（打卡/补录），布局不变 -->
-  <div class="flex items-center gap-1">
-    ${mealsOfDate(date).length>0 ? '<span class="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success">打卡</span>' : ''}
-    ${mealsOfDate(date).some(m=>m.backfill) ? '<span class="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">补录</span>' : ''}
-  </div>
-</div>
+    <div class="flex items-center gap-2">
+      <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
+      ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-success"></span>' : ''}
+      ${mealsOfDate(date).length>0 ? '<span class="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success">打卡</span>' : ''}
+      ${mealsOfDate(date).some(m=>m.backfill) ? '<span class="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">补录</span>' : ''}
+    </div>
     <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">${t.kcal} kcal</div>
   </button>
 `;
