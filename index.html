@@ -2041,13 +2041,17 @@ function renderDailyDetails(date){
   const total = totalsOfDate(date);
   summary.classList.toggle('hidden', meals.length===0);
   summary.innerHTML = meals.length===0 ? '' : `
-    <div class="flex justify-between items-center text-sm font-medium mb-2"><div>当日总计</div><div>${total.kcal}kcal</div></div>
-    <div class="grid grid-cols-3 gap-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
-      <div>蛋白质 ${total.protein.toFixed(1)}g</div>
-      <div>碳水 ${total.carbs.toFixed(1)}g</div>
-      <div>脂肪 ${total.fat.toFixed(1)}g</div>
-    </div>
-  `;
+  <hr class="my-3 border-neutral-200 dark:border-neutral-700">
+  <div class="flex justify-between items-center text-sm font-medium mb-2">
+    <div>当日总计</div>
+    <div>${total.kcal}kcal</div>
+  </div>
+  <div class="grid grid-cols-3 gap-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
+    <div>蛋白质 ${total.protein.toFixed(1)}g</div>
+    <div>碳水 ${total.carbs.toFixed(1)}g</div>
+    <div>脂肪 ${total.fat.toFixed(1)}g</div>
+  </div>
+`;
 
   // 点击任意一餐 -> 打开弹层
   list.querySelectorAll('[data-open]').forEach(btn=>{
