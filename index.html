@@ -434,7 +434,10 @@ html, body {
         <button id="tab-profile" class="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400"><i class="fa-solid fa-user mb-1"></i><span class="text-xs">我的</span></button>
       </div>
     </nav>
-
+<!-- [A] 轻提示 Toast（全局） -->
+<div id="app-toast" class="fixed bottom-24 right-4 z-[9999] hidden">
+  <div class="px-3 py-2 rounded-lg bg-black/80 text-white text-sm shadow-light">提示</div>
+</div>
     <!-- AI 确认弹层 -->
      <!-- 历史餐详情弹层 -->
 <div id="hist-meal-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-end sm:items-center justify-center">
@@ -505,6 +508,33 @@ html, body {
     </div>
 
     <script>
+      /* [B] —— 全局小工具：Toast / 按钮loading / 数据变更事件 —— */
+function showToast(msg = '已完成', ms = 1800) {
+  const box = document.getElementById('app-toast');
+  if (!box) return;
+  box.firstElementChild.textContent = msg;
+  box.classList.remove('hidden');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => box.classList.add('hidden'), ms);
+}
+
+function setBtnLoading(btn, loadingText = '保存中...') {
+  if (!btn) return () => {};
+  const prev = { html: btn.innerHTML, disabled: btn.disabled };
+  btn.disabled = true;
+  btn.innerHTML = loadingText;
+  btn.classList.add('opacity-70', 'cursor-not-allowed');
+  return () => {
+    btn.disabled = prev.disabled;
+    btn.innerHTML = prev.html;
+    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+  };
+}
+
+// 统一对外广播“数据变了”，任何页面都可以监听刷新
+function emitMealsChanged(detail = {}) {
+  window.dispatchEvent(new CustomEvent('data:meals-changed', { detail }));
+}
       // 轻存储助手
       // === 数据模型 ===
 // MealItem: { name, grams, protein, carbs, fat, kcal }
@@ -629,6 +659,8 @@ function closeAiModal(){
   resetAiSession(); 
   // 清理编辑状态
   window.currentEditableItems = null;
+    editingOldMealKey = null;
+  tempAiItemsForEdit = null;
 }
 document.getElementById('cancel-ai').onclick = closeAiModal;
 aiModal.addEventListener('click', (e) => { if (e.target === aiModal) closeAiModal(); });
@@ -1447,83 +1479,90 @@ async function runAOnce(extraText){
 }
 
 
-      // 确认AI -> 保存到本地
-document.getElementById('confirm-ai').onclick = () => {
-  // 1) 优先使用用户修正后的数据
-  let fin = [];
-  let totals = {kcal:0,protein:0,carbs:0,fat:0};
+      // 确认AI -> 保存到本地（[D] 新版：带loading + 统一广播 + toast）
+document.getElementById('confirm-ai').onclick = async () => {
+  const btn = document.getElementById('confirm-ai');
+  const stopLoading = setBtnLoading(btn, '保存中...');
 
-  if (window.currentEditableItems && window.currentEditableItems.length > 0) {
-    // 使用用户修正后的数据
-    fin = window.currentEditableItems.map(it=>({
-      name: String(it.name||'食物'),
-      protein: +(it.protein||0),
-      carbs: +(it.carbs||0),
-      fat: +(it.fat||0),
-      kcal: Math.max(0, Math.round(+it.kcal||0))
-    }));
-    totals = calcTotals(fin);
-  } else {
-    // 2) 兜底：使用会话态数据
-    const j = (window.__aiSession && window.__aiSession.lastJSON) || null;
-    
-    if (j && Array.isArray(j.items) && j.items.length>0) {
-      fin = j.items.map(it=>({
-        name: String(it.name||'食物'),
-        protein: +(it.protein||0),
-        carbs: +(it.carbs||0),
-        fat: +(it.fat||0),
-        kcal: Math.max(0, Math.round(+it.kcal||0))
+  try {
+    // 1) 优先用用户在弹层里的手动调整
+    let fin = [];
+    let totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+
+    if (window.currentEditableItems && window.currentEditableItems.length > 0) {
+      fin = window.currentEditableItems.map(it => ({
+        name: String(it.name || '食物'),
+        protein: +(it.protein || 0),
+        carbs: +(it.carbs || 0),
+        fat: +(it.fat || 0),
+        kcal: Math.max(0, Math.round(+it.kcal || 0)),
       }));
-      totals = {
-        kcal: Math.max(0, Math.round(+j.totals?.kcal||0)),
-        protein: +(+j.totals?.protein||0).toFixed(1),
-        carbs: +(+j.totals?.carbs||0).toFixed(1),
-        fat: +(+j.totals?.fat||0).toFixed(1),
-      };
+      totals = calcTotals(fin);
+    } else {
+      // 2) 兜底：用本次会话的最后 JSON
+      const j = (window.__aiSession && window.__aiSession.lastJSON) || null;
+      if (j && Array.isArray(j.items) && j.items.length > 0) {
+        fin = j.items.map(it => ({
+          name: String(it.name || '食物'),
+          protein: +(it.protein || 0),
+          carbs: +(it.carbs || 0),
+          fat: +(it.fat || 0),
+          kcal: Math.max(0, Math.round(+it.kcal || 0)),
+        }));
+        totals = calcTotals(fin);
+      }
     }
-  }
 
-  if (fin.length === 0) {
-    alert('没有可保存的条目');
-    return;
-  }
-
-  const meals = store.get('meals', []);
-  if (editingOldMealKey) {
-    const idx = meals.findIndex(x => x.time === editingOldMealKey);
-    if (idx > -1) {
-      meals[idx].items = fin;
-meals[idx].text = formatMealText(fin);   // 用 “食物 x 数量” 简述文案
-meals[idx].totals = totals;
-      meals[idx].updatedAt = Date.now();
-      store.set('meals', meals);
-      loadGoalsForToday();
-      syncGoalLabels();
-      paintMeals();
+    if (fin.length === 0) {
+      alert('没有可保存的条目');
+      return;
     }
-    editingOldMealKey = null;
-    tempAiItemsForEdit = null;
-  } else {
-    // 原来是从 textarea 取 text，这里改成使用 formatMealText 生成的简述
-const entry = {
-  time: Date.now(),
-  mealType: currentMeal,
-  text: formatMealText(fin),   // 关键：保存为 “牛肉面 x 1, 香蕉 x 1”
-  items: fin,
-  totals
-};
-    meals.push(entry);
-    document.getElementById('meal-text').value = '';
+
+    const meals = store.get('meals', []);
+
+    if (editingOldMealKey) {
+      // 覆盖历史那一条
+      const idx = meals.findIndex(x => x.time === editingOldMealKey);
+      if (idx > -1) {
+        meals[idx].items = fin;
+        meals[idx].text = formatMealText(fin); // 用“食物 x 数量”简述
+        meals[idx].totals = totals;
+        meals[idx].updatedAt = Date.now();
+      }
+      editingOldMealKey = null;
+      tempAiItemsForEdit = null;
+    } else {
+      // 新增今天一条
+      meals.push({
+        time: Date.now(),
+        mealType: currentMeal,
+        text: formatMealText(fin),
+        items: fin,
+        totals,
+      });
+      // 清空输入框
+      const mt = document.getElementById('meal-text');
+      if (mt) mt.value = '';
+    }
+
+    // 写回存储
     store.set('meals', meals);
-    paintMeals();
-    updateStats();
-  }
 
-  // 最后再关闭弹层并清理会话
-  closeAiModal();
+    // 统一广播：由 [C] 的监听器去 paintMeals()/updateStats()/刷新历史页
+    emitMealsChanged({ from: 'confirm-ai' });
+
+    // 轻提示
+    showToast('已保存');
+
+    // 关弹层并清理会话
+    closeAiModal();
+  } catch (err) {
+    console.error('[confirm-ai] 保存失败：', err);
+    alert('保存失败，请稍后再试');
+  } finally {
+    stopLoading();
+  }
 };
- 
 
 
 
@@ -1582,10 +1621,15 @@ const entry = {
       </div>`;
 
     card.querySelector('[data-del]')?.addEventListener('click',()=>{
-      const all = store.get('meals', []);
-      const idx = all.findIndex(x=>x.time===m.time);
-      if(idx>-1){ all.splice(idx,1); store.set('meals', all); paintMeals(); updateStats(); }
-    });
+  const all = store.get('meals', []);
+  const idx = all.findIndex(x=>x.time===m.time);
+  if (idx > -1) {
+    all.splice(idx, 1);
+    store.set('meals', all);
+    emitMealsChanged({ from: 'delete-meal' }); // ← 广播
+    showToast('已删除');                        // ← 轻提示
+  }
+});
 
     list.appendChild(card);
   });
@@ -1640,6 +1684,20 @@ const entry = {
   if (carbBar) carbBar.style.width = carbPct + '%';
   if (fatBar)  fatBar.style.width  = fatPct  + '%';
 }
+/* [C] —— 数据变化时的统一刷新逻辑 */
+window.addEventListener('data:meals-changed', () => {
+  // 今天页
+  paintMeals();
+  updateStats();
+
+  // 如果在历史页，也刷新详情/日历/图表
+  const historyVisible = !document.getElementById('page-history').classList.contains('hidden');
+  if (historyVisible) {
+    renderDailyDetails(selectedDate);
+    renderCalendar();
+    initChart(window.__chartState?.metric || 'calories', historyView, periodStart, selectedDate);
+  }
+});
 loadGoalsForToday();
 syncGoalLabels();
 paintMeals();
@@ -1763,49 +1821,61 @@ function recalcModalTotals(){
 
 hmClose.onclick = ()=> hmModal.classList.add('hidden');
 
-document.getElementById('hm-save').onclick = async () => {
-  const all = store.get('meals', []);
-  const m = all.find(x => x.time === hmEditingKey);
-  if (!m) return;
-
-  // 组合给AI的输入：原始文本 + 修正说明
-  const note = (document.getElementById('hm-note').value || '').trim();
-  const aiInput = (m.text || '') + (note ? ('；修正说明：' + note) : '');
-
-  let ret;
+// [E] —— 历史弹层里“让 AI 生成新的一餐”
+document.getElementById('hm-save').onclick = async (ev) => {
+  const btn = ev.currentTarget;
+  const endLoading = setBtnLoading(btn, '生成中...');
   try {
-    ret = await callAI({ text: aiInput, image: null, mode:'text' });
-  } catch (e) {
-    alert('AI 生成失败：' + (e?.message || '请稍后重试'));
-    return;
+    const all = store.get('meals', []);
+    const m = all.find(x => x.time === hmEditingKey);
+    if (!m) return;
+
+    const note = (document.getElementById('hm-note').value || '').trim();
+    const aiInput = (m.text || '') + (note ? ('；修正说明：' + note) : '');
+
+    let ret;
+    try {
+      ret = await callAI({ text: aiInput, image: null, mode:'text' });
+    } catch (e) {
+      alert('AI 生成失败：' + (e?.message || '请稍后重试'));
+      return;
+    }
+
+    const items = Array.isArray(ret?.items) ? ret.items : [];
+    if (items.length === 0) {
+      alert('AI 未生成有效条目，请调整修正说明再试。');
+      return;
+    }
+
+    const json = { items, totals: calcTotals(items), notes: ret?.notes || '' };
+    renderAiResult(json);
+    tempAiItemsForEdit = items;
+    editingOldMealKey = hmEditingKey;
+
+    // 关键：先关闭历史弹层，避免两个弹层叠加
+    document.getElementById('hist-meal-modal').classList.add('hidden');
+
+    // 打开 AI 弹层
+    document.getElementById('ai-modal').classList.remove('hidden');
+  } finally {
+    endLoading();
   }
-
-  const items = Array.isArray(ret?.items) ? ret.items : [];
-  if (items.length === 0) {
-    alert('AI 未生成有效条目，请调整修正说明再试。');
-    return;
-  }
-
-  // 把AI结果预渲染到 ai-modal 的表格（可继续拖动滑杆微调）
-  const json = { items, totals: calcTotals(items), notes: ret?.notes || '' };
-renderAiResult(json);
-  tempAiItemsForEdit = items;
-  editingOldMealKey = hmEditingKey;
-
-  // 打开 ai-modal 让你确认
-  document.getElementById('ai-modal').classList.remove('hidden');
 };
 
 document.getElementById('hm-delete').onclick = ()=>{
   const all = store.get('meals', []);
   const idx = all.findIndex(x=>x.time===hmEditingKey);
-  if(idx<0) return;
-  all.splice(idx,1);
+  if (idx < 0) return;
+
+  all.splice(idx, 1);
   store.set('meals', all);
-  paintMeals();
-  updateStats();
-  renderDailyDetails(selectedDate);
-  hmModal.classList.add('hidden');
+
+  // 关闭弹层
+  document.getElementById('hist-meal-modal').classList.add('hidden');
+
+  // 统一广播 + 提示（历史页、今天页、图表、日历都会被 [C] 监听器自动刷新）
+  emitMealsChanged({ from: 'history-delete' });
+  showToast('已删除');
 };
   // 绑定视图切换
   document.querySelectorAll('[data-view]').forEach(btn=>{
