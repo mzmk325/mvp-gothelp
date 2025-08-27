@@ -2026,7 +2026,7 @@ function renderDailyDetails(date){
     const t = m.totals || {kcal:0,protein:0,carbs:0,fat:0};
     const timeText = new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     return `
-      <button class="w-full text-left border-b border-neutral-100 dark:border-neutral-700 pb-4" data-open="${m.time}" data-last="0">
+      <button class="w-full text-left border-b border-neutral-100 dark:border-neutral-700 pb-4" data-open="${m.time}">
         <div class="flex justify-between items-start mb-1">
           <div class="font-medium text-sm">${MEAL_I18N[m.mealType] || '—'} <span class="ml-2 text-xs text-neutral-500">${timeText}</span></div>
           <div class="text-sm">${t.kcal}kcal</div>
@@ -2040,8 +2040,7 @@ function renderDailyDetails(date){
   // 总结
   const total = totalsOfDate(date);
   summary.classList.toggle('hidden', meals.length===0);
-  summary.innerHTML = meals.length===0 ? '' : `
-  <hr class="my-3 border-neutral-200 dark:border-neutral-700">
+    summary.innerHTML = meals.length===0 ? '' : `
   <div class="flex justify-between items-center text-sm font-medium mb-2">
     <div>当日总计</div>
     <div>${total.kcal}kcal</div>
@@ -2052,11 +2051,7 @@ function renderDailyDetails(date){
     <div>脂肪 ${total.fat.toFixed(1)}g</div>
   </div>
 `;
-// 去掉最后一条餐的底线，只保留 summary 的横线
-const items = list.querySelectorAll('[data-open]');
-if (items.length > 0) {
-  items[items.length - 1].classList.remove('border-b');
-}
+
   // 点击任意一餐 -> 打开弹层
   list.querySelectorAll('[data-open]').forEach(btn=>{
     btn.onclick = () => openHistMealModal(+btn.getAttribute('data-open'));
