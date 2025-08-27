@@ -1726,6 +1726,12 @@ hmItems.innerHTML = '';
   `;
   hmItems.appendChild(row);
 });
+// ★ 计算并回填「本餐总计」
+const sum = calcTotals(m.items || []);
+document.getElementById('hm-total-kcal').textContent = `${sum.kcal}kcal`;
+document.getElementById('hm-total-pro').textContent  = sum.protein; // g 在 HTML 里
+document.getElementById('hm-total-carb').textContent = sum.carbs;   // g 在 HTML 里
+document.getElementById('hm-total-fat').textContent  = sum.fat;     // g 在 HTML 里
 
 // 修改保存按钮文案
 document.getElementById('hm-save').textContent = '让 AI 生成新的一餐';
