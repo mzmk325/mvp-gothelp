@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF">
-<meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#111827">
+<meta name="theme-color" content="#FFFFFF">
+
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>吃什么</title>
     <link rel="manifest" href="/manifest.webmanifest">
@@ -184,7 +184,7 @@ html, body {
             <button id="camera-btn" class="w-24 h-24 rounded-full bg-primary flex items-center justify-center shadow-medium mb-4 transition-transform-shadow touch-target">
               <i class="fa-solid fa-camera text-white text-2xl"></i>
             </button>
-            <input id="photo-input" type="file" accept="image/*" capture="environment" class="hidden" />
+            <input id="photo-input" type="file" accept="image/*" class="hidden" />
             <p class="text-xs text-neutral-500 dark:text-neutral-400 text-center max-w-xs">请俯拍食物，以提升准确度</p>
           </div>
           <div class="mb-5">
@@ -773,24 +773,23 @@ function saveTodayOverride(){
      // 主题模式：auto | light | dark
 // - auto：按时间切（19:00–06:00 = dark）
 // - light/dark：手动固定
-function applyThemeByMode(mode){
-  if(mode==='auto'){
+function applyThemeByMode(mode) {
+  if(mode === 'auto') {
     const h = new Date().getHours();
     const shouldDark = (h >= 19 || h < 6);
     document.documentElement.classList.toggle('dark', shouldDark);
-    localStorage.setItem('theme', shouldDark ? 'dark' : 'light'); // 方便下游配色读取
-  }else{
-    document.documentElement.classList.toggle('dark', mode==='dark');
+    localStorage.setItem('theme', shouldDark ? 'dark' : 'light'); // 保存当前模式
+  } else {
+    document.documentElement.classList.toggle('dark', mode === 'dark');
     localStorage.setItem('theme', mode);
   }
-}
 
-function getThemeMode(){
-  return localStorage.getItem('themeMode') || 'auto';
-}
-function setThemeMode(mode){
-  localStorage.setItem('themeMode', mode);
-  applyThemeByMode(mode);
+  // 👉 新增：更新 meta theme-color
+  const metaColor = document.querySelector('meta[name="theme-color"]');
+  if (metaColor) {
+    const isDark = document.documentElement.classList.contains('dark');
+    metaColor.setAttribute('content', isDark ? '#111827' : '#FFFFFF');
+  }
 }
 
 // 绑定按钮：点击 = 在 light/dark 之间切换并进入手动模式；长按 1.5s 恢复 auto
@@ -1685,17 +1684,18 @@ hmItems.innerHTML = '';
   row.className = 'p-3 rounded-xl bg-neutral-50 dark:bg-neutral-700';
   row.innerHTML = `
     <div class="flex justify-between items-center">
-      <div class="font-medium">${it.name || '食物'}</div>
+      <div class="font-medium">${it.name || ''}</div>
       <div class="text-sm text-neutral-500">${it.kcal || 0}kcal</div>
-    </div>
-    <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-      <div>蛋白 ${it.protein || 0}g</div>
-      <div>碳水 ${it.carbs   || 0}g</div>
-      <div>脂肪 ${it.fat     || 0}g</div>
-    </div>
-  `;
+    </div>`;
   hmItems.appendChild(row);
 });
+
+// 👉 新增：计算并更新本餐总计
+const total = m.totals || { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+document.getElementById('hm-total-kcal').textContent = total.kcal + ' kcal';
+document.getElementById('hm-total-pro').textContent = total.protein;
+document.getElementById('hm-total-carb').textContent = total.carbs;
+document.getElementById('hm-total-fat').textContent = total.fat;
 
 // 修改保存按钮文案
 document.getElementById('hm-save').textContent = '让 AI 生成新的一餐';
@@ -1851,8 +1851,6 @@ function renderCalendar(){
           data-pick="${key}">
     <div class="flex items-center gap-2">
       <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
-      ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-success"></span>' : ''}
-      ${mealsOfDate(date).length>0 ? '<span class="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success">打卡</span>' : ''}
       ${mealsOfDate(date).some(m=>m.backfill) ? '<span class="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">补录</span>' : ''}
     </div>
     <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">${t.kcal} kcal</div>
