@@ -185,6 +185,7 @@ html, body {
               <i class="fa-solid fa-camera text-white text-2xl"></i>
             </button>
             <input id="photo-input" type="file" accept="image/*" capture="environment" class="hidden" />
+            <input id="gallery-input" type="file" accept="image/*" class="hidden" />
             <p class="text-xs text-neutral-500 dark:text-neutral-400 text-center max-w-xs">请俯拍食物，以提升准确度</p>
           </div>
           <div class="mb-5">
@@ -319,7 +320,13 @@ html, body {
           <section class="bg-white dark:bg-neutral-800 rounded-xl shadow-light p-6 border border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
-                <div class="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center text-neutral-400"><i class="fa-solid fa-user text-2xl"></i></div>
+                <label for="avatar-upload" class="relative w-16 h-16 rounded-full overflow-hidden cursor-pointer group">
+  <img id="profile-avatar"
+     src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjY2NjIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjMiLz48cGF0aCBkPSJNMTIgMTFjLTMuMyAwLTYgMi43LTYgNnYxYy4wMDIuNTUyLjQ0OCAxIDEgMWgxM2MuNTUyIDAgLjk5OC0uNDQ4IDEtMXYtMWMwLTMuMy0yLjctNi02LTZ6Ii8+PC9zdmc+"
+     class="w-full h-full object-cover rounded-full border border-neutral-300 dark:border-neutral-700"/>
+  <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs">更换</div>
+  <input id="avatar-upload" type="file" accept="image/*" class="hidden" />
+</label>
                 <div>
                   <div class="text-xl font-semibold" id="profile-name">健康饮食者</div>
                   <div class="text-neutral-500 dark:text-neutral-400 text-sm" id="profile-basic">男 32岁</div>
@@ -829,7 +836,7 @@ if(getThemeMode()==='auto'){
         Object.values(pages).forEach(el => el.classList.add('hidden'));
         pages[tab].classList.remove('hidden');
 
-        if (tab==='today')  appTitle.textContent = '吃什么';
+        if (tab==='today')  appTitle.textContent = '食刻 Foodtime';
 if (tab==='history'){ appTitle.textContent = '历史记录'; initHistory(); }
 if (tab==='profile') appTitle.textContent = '我的';
 if (tab==='settingsProfile') appTitle.textContent = '个人资料';
@@ -914,7 +921,30 @@ function loadProfile(){
   document.getElementById('profile-basic').textContent = (p.gender||'') + (p.age?` ${p.age}岁`:'');
   document.getElementById('profile-body').textContent  = (p.height?`${p.height}cm`:'') + (p.weight?` / ${p.weight}kg`:'');
 }
+// 初次加载头像
+function loadAvatar(){
+  const p = getProfile();
+  if (p.avatar) {
+    const avatarEl = document.getElementById('profile-avatar');
+    if (avatarEl) avatarEl.src = p.avatar;
+  }
+}
 
+// 上传头像逻辑
+document.getElementById('avatar-upload').addEventListener('change', (e)=>{
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const base64 = ev.target.result;
+    const profile = getProfile();
+    profile.avatar = base64;
+    setProfile(profile);
+    const avatarEl = document.getElementById('profile-avatar');
+    if (avatarEl) avatarEl.src = base64;
+  };
+  reader.readAsDataURL(file);
+});
 // 绑定按钮：返回/保存（两个子页）
 document.getElementById('settings-back-profile').onclick = ()=> switchTab('profile');
 document.getElementById('settings-save-profile').onclick = ()=>{
@@ -1842,23 +1872,20 @@ function renderCalendar(){
   let html = '';
 
   const dayCell = (date) => {
-    const key = ymd(date);
-    const t = totalsOfDate(date);
-    const isSel = key === ymd(selectedDate);
-    const isToday = key === todayKey;
-    return `
-  <button class="text-left p-3 rounded-xl border ${isSel ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-700/40'} transition-colors"
-          data-pick="${key}">
-    <div class="flex items-center gap-2">
-      <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
-      ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-success"></span>' : ''}
-      ${mealsOfDate(date).length>0 ? '<span class="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success">打卡</span>' : ''}
-      ${mealsOfDate(date).some(m=>m.backfill) ? '<span class="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">补录</span>' : ''}
-    </div>
-    <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">${t.kcal} kcal</div>
-  </button>
-`;
-  };
+  const key = ymd(date);
+  const t = totalsOfDate(date);
+  const isSel = key === ymd(selectedDate);
+  const isToday = key === todayKey;
+  return `
+    <button class="text-left p-3 rounded-xl border ${isSel ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-700/40'} transition-colors"
+            data-pick="${key}">
+      <div class="flex items-center gap-2">
+        <div class="text-base font-medium ${isSel?'text-primary':''}">${date.getDate()}</div>
+      </div>
+      <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">${t.kcal} kcal</div>
+    </button>
+  `;
+};
 
   if(historyView==='week'){
     html += '<div class="grid grid-cols-7 gap-2">';
