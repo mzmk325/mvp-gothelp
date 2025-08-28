@@ -10,9 +10,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>吃什么</title>
     <link rel="manifest" href="/manifest.webmanifest">
-    <!-- iOS 桌面图标 -->
-<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}</script>
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -324,9 +321,10 @@ html, body {
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
                 <label for="avatar-upload" class="relative w-16 h-16 rounded-full overflow-hidden cursor-pointer group">
-  <img id="profile-avatar"
-     src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjY2NjIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjMiLz48cGF0aCBkPSJNMTIgMTFjLTMuMyAwLTYgMi43LTYgNnYxYy4wMDIuNTUyLjQ0OCAxIDEgMWgxM2MuNTUyIDAgLjk5OC0uNDQ4IDEtMXYtMWMwLTMuMy0yLjctNi02LTZ6Ii8+PC9zdmc+"
-     class="w-full h-full object-cover rounded-full border border-neutral-300 dark:border-neutral-700"/>
+    <img id="profile-avatar"
+       src=""
+       alt="头像"
+       class="w-full h-full object-cover rounded-full border border-neutral-300 dark:border-neutral-700"/>
   <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs">更换</div>
   <input id="avatar-upload" type="file" accept="image/*" class="hidden" />
 </label>
@@ -750,6 +748,14 @@ photoInput.addEventListener('change', async (e) => {
         get(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } },
         set(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
       }
+      const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="16" fill="#E5E7EB"/>
+  <circle cx="64" cy="48" r="24" fill="#9CA3AF"/>
+  <path d="M24 106c0-22 18-34 40-34s40 12 40 34" fill="#9CA3AF"/>
+</svg>
+`);
+
       function ymdKey(d=new Date()){
   const two = n => n<10?'0'+n:''+n;
   return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`;
@@ -776,9 +782,13 @@ function setCurrentMode(m){ store.set('currentMode', m); }
 
 // 个人资料：保留你原有结构
 function getProfile(){
-  return store.get('profile', { name:'健康饮食者', gender:'男', age:32, height:175, weight:70 });
+  const saved = store.get('profile', {
+    name:'健康饮食者', gender:'男', age:32, height:175, weight:70, avatar:null
+  });
+  // 没头像 → 用默认头像（并保持为字符串）
+  if (!saved.avatar) saved.avatar = DEFAULT_AVATAR;
+  return saved;
 }
-function setProfile(p){ store.set('profile', p); }
 
 // 首页：按“当前模式”把预设灌入今天（可手动改）
 function loadGoalsForToday(){
@@ -956,13 +966,16 @@ function loadProfile(){
   document.getElementById('profile-basic').textContent = (p.gender||'') + (p.age?` ${p.age}岁`:'');
   document.getElementById('profile-body').textContent  = (p.height?`${p.height}cm`:'') + (p.weight?` / ${p.weight}kg`:'');
 }
-// 初次加载头像
+// 初次加载头像（无头像则写入默认，并回显）
 function loadAvatar(){
   const p = getProfile();
-  if (p.avatar) {
-    const avatarEl = document.getElementById('profile-avatar');
-    if (avatarEl) avatarEl.src = p.avatar;
+  if (!p.avatar) {
+    p.avatar = DEFAULT_AVATAR;
+    setProfile(p); // 持久化，保证“明天来也还在”
   }
+
+  const avatarEl = document.getElementById('profile-avatar');
+  if (avatarEl) avatarEl.src = p.avatar || DEFAULT_AVATAR;
 }
 
 // 上传头像逻辑
@@ -2165,7 +2178,7 @@ document.querySelectorAll('[data-metric]').forEach(btn=>{
 
 // 初始化：加载今天目标（依赖 profile 默认）
 loadGoalsForToday();
-loadProfile();
+loadProfile(); loadAvatar();
 // 初始进入“今天”
 switchTab('today');
     </script>
