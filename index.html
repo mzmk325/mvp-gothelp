@@ -351,7 +351,7 @@ html, body {
               <h3 class="text-lg font-semibold">营养与目标</h3>
               <button id="profile-goal-btn" class="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-600 text-sm">进入设置</button>
             </div>
-            <div class="text-neutral-600 dark:text-neutral-300">
+            <div class="text-sm text-neutral-500 dark:text-neutral-300">
               目标：热量 <span id="profile-goal-cal">2000</span>kcal ｜ 蛋白质 <span id="profile-goal-pro">100</span>g ｜ 碳水 <span id="profile-goal-carbs">0</span>g ｜ 脂肪 <span id="profile-goal-fat">65</span>g
             </div>
           </section>
@@ -979,19 +979,30 @@ function loadAvatar(){
 }
 
 // 上传头像逻辑
-document.getElementById('avatar-upload').addEventListener('change', (e)=>{
+async function compressAvatar(file, side = 256, quality = 0.8) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+  const canvas = document.createElement('canvas');
+  canvas.width = side; canvas.height = side;
+  const ctx = canvas.getContext('2d');
+  // cover 裁切：铺满方形头像
+  const scale = Math.max(side / img.width, side / img.height);
+  const w = img.width * scale, h = img.height * scale;
+  ctx.drawImage(img, (side - w) / 2, (side - h) / 2, w, h);
+  URL.revokeObjectURL(url);
+  return canvas.toDataURL('image/jpeg', quality); // 约 20~60KB
+}
+
+document.getElementById('avatar-upload').addEventListener('change', async (e)=>{
   const file = e.target.files?.[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const base64 = ev.target.result;
-    const profile = getProfile();
-    profile.avatar = base64;
-    setProfile(profile);
-    const avatarEl = document.getElementById('profile-avatar');
-    if (avatarEl) avatarEl.src = base64;
-  };
-  reader.readAsDataURL(file);
+  const base64 = await compressAvatar(file);      // ← 压缩后再存
+  const profile = getProfile();
+  profile.avatar = base64;
+  setProfile(profile);
+  const avatarEl = document.getElementById('profile-avatar');
+  if (avatarEl) avatarEl.src = base64;
 });
 // 绑定按钮：返回/保存（两个子页）
 document.getElementById('settings-back-profile').onclick = ()=> switchTab('profile');
@@ -2178,7 +2189,13 @@ document.querySelectorAll('[data-metric]').forEach(btn=>{
 
 // 初始化：加载今天目标（依赖 profile 默认）
 loadGoalsForToday();
-loadProfile(); loadAvatar();
+loadProfile(); 
+// 启动时自动“瘦身”头像一次（兼容之前存过的大图）
+migrateBigAvatarIfNeeded(300).then(loadAvatar);
+
+// 初始进入“今天”
+switchTab('today');
+loadAvatar();
 // 初始进入“今天”
 switchTab('today');
     </script>
