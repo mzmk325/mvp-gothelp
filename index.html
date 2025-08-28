@@ -87,6 +87,16 @@ html, body {
   /* 新版 iOS / iPhone 15 Pro Max 等 */
   padding-top: env(safe-area-inset-top);
 }
+/* —— iOS 底部安全区（适配 Home 指示条）—— */
+.safe-bottom{
+  padding-bottom: constant(safe-area-inset-bottom); /* 老 iOS */
+  padding-bottom: env(safe-area-inset-bottom);      /* 新 iOS */
+}
+
+/* 主体内容对底栏的预留：底栏高度 64px + 安全区 */
+.pb-nav-safe{
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom)); /* 4rem = 64px */
+}
       }
       
     </style>
@@ -109,7 +119,7 @@ html, body {
     </header>
 
     <!-- 主体：三个分区（今天 / 历史 / 我的） -->
-    <main class="container mx-auto px-4 py-6 pb-24">
+    <main class="container mx-auto px-4 py-6 pb-nav-safe"></main>
       <!-- 今天 -->
       <section id="page-today" class="block">
         <!-- 今日标准卡 -->
@@ -428,8 +438,8 @@ html, body {
     </main>
 
     <!-- 底部导航栏 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40">
-      <div class="grid grid-cols-3 h-16">
+    <nav class="fixed bottom-0 left-0 right-0 safe-bottom bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-40">
+  <div class="grid grid-cols-3 min-h-[64px] py-1">
         <button id="tab-today" class="flex flex-col items-center justify-center text-primary"><i class="fa-solid fa-utensils mb-1"></i><span class="text-xs">今天</span></button>
         <button id="tab-history" class="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400"><i class="fa-solid fa-history mb-1"></i><span class="text-xs">历史</span></button>
         <button id="tab-profile" class="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400"><i class="fa-solid fa-user mb-1"></i><span class="text-xs">我的</span></button>
