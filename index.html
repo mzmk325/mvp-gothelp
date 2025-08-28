@@ -748,6 +748,10 @@ photoInput.addEventListener('change', async (e) => {
         get(key, def){ try{ return JSON.parse(localStorage.getItem(key)) ?? def }catch{ return def } },
         set(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
       }
+      // ✅ 全局：保存个人资料（头像也靠它持久化）
+function setProfile(p){
+  store.set('profile', p);
+}
       const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <rect width="128" height="128" rx="16" fill="#E5E7EB"/>
@@ -782,10 +786,6 @@ function setCurrentMode(m){ store.set('currentMode', m); }
 
 // 个人资料：保留你原有结构
 function getProfile(){
-  // ✅ 锚点1：缺失的存储方法（没有它会 ReferenceError，头像永远保存不了）
-function setProfile(p){
-  store.set('profile', p);
-}
   const saved = store.get('profile', {
     name:'健康饮食者', gender:'男', age:32, height:175, weight:70, avatar:null
   });
@@ -1007,6 +1007,7 @@ document.getElementById('avatar-upload').addEventListener('change', async (e)=>{
   setProfile(profile);
   const avatarEl = document.getElementById('profile-avatar');
   if (avatarEl) avatarEl.src = base64;
+  showToast('头像已更新');
 });
 // 绑定按钮：返回/保存（两个子页）
 document.getElementById('settings-back-profile').onclick = ()=> switchTab('profile');
