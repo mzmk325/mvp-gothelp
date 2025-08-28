@@ -782,6 +782,10 @@ function setCurrentMode(m){ store.set('currentMode', m); }
 
 // 个人资料：保留你原有结构
 function getProfile(){
+  // ✅ 锚点1：缺失的存储方法（没有它会 ReferenceError，头像永远保存不了）
+function setProfile(p){
+  store.set('profile', p);
+}
   const saved = store.get('profile', {
     name:'健康饮食者', gender:'男', age:32, height:175, weight:70, avatar:null
   });
@@ -2191,7 +2195,7 @@ document.querySelectorAll('[data-metric]').forEach(btn=>{
 loadGoalsForToday();
 loadProfile(); 
 // 启动时自动“瘦身”头像一次（兼容之前存过的大图）
-migrateBigAvatarIfNeeded(300).then(loadAvatar);
+// migrateBigAvatarIfNeeded(300).then(loadAvatar);
 
 // 初始进入“今天”
 switchTab('today');
